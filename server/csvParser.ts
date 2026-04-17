@@ -135,24 +135,13 @@ function parseCSVFile(csvPath: string, startId: number, encoding: BufferEncoding
 }
 
 export function parseCSV(): { products: Product[]; categories: Category[] } {
-  // On Netlify, server runs from dist directory, CSV files are in dist/public
-  // On local dev, server runs from project root, CSV files are in client/public
-  let assetsPath: string;
-  if (fs.existsSync(path.join(process.cwd(), "public", "produkte.csv"))) {
-    // Netlify environment
-    assetsPath = path.join(process.cwd(), "public");
-  } else if (fs.existsSync(path.join(process.cwd(), "client", "public", "produkte.csv"))) {
-    // Local development
-    assetsPath = path.join(process.cwd(), "client", "public");
-  } else {
-    console.error("CSV-Dateien nicht gefunden!");
-    return { products: [], categories: [] };
-  }
-  
-  const produkteCsvPath = path.join(assetsPath, "produkte.csv");
-  const reisenCsvPath = path.join(assetsPath, "reisen.csv");
-  
-  console.log("Lade CSV-Dateien aus", assetsPath);
+  // Auf Netlify liegen die CSVs in dist/public (nach dem Copy-Step)
+  const publicPath = path.join(process.cwd(), "public");
+
+  const produkteCsvPath = path.join(publicPath, "produkte.csv");
+  const reisenCsvPath = path.join(publicPath, "reisen.csv");
+
+  console.log("Lade CSV-Dateien aus:", publicPath);
   console.log("Produkte-CSV:", produkteCsvPath);
   console.log("Reisen-CSV:", reisenCsvPath);
   
