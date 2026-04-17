@@ -1,6 +1,7 @@
 import { build as esbuild } from "esbuild";
 import { build as viteBuild } from "vite";
-import { rm, readFile } from "fs/promises";
+import { rm, readFile, mkdir, copyFile } from "fs/promises";
+import { join } from "path";
 
 // server deps to bundle to reduce openat(2) syscalls
 // which helps cold start times
@@ -37,6 +38,12 @@ async function buildAll() {
 
   console.log("building client...");
   await viteBuild();
+
+  console.log("copying CSV files to dist/public...");
+  await mkdir("dist/public", { recursive: true });
+  await copyFile("client/public/produkte.csv", "dist/public/produkte.csv");
+  await copyFile("client/public/reisen.csv", "dist/public/reisen.csv");
+  console.log("CSV files copied successfully");
 
   console.log("building server...");
   const pkg = JSON.parse(await readFile("package.json", "utf-8"));

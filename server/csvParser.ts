@@ -135,7 +135,19 @@ function parseCSVFile(csvPath: string, startId: number, encoding: BufferEncoding
 }
 
 export function parseCSV(): { products: Product[]; categories: Category[] } {
-  const assetsPath = path.join(process.cwd(), "client", "public");
+  // On Netlify, server runs from dist directory, CSV files are in dist/public
+  // On local dev, server runs from project root, CSV files are in client/public
+  let assetsPath: string;
+  if (fs.existsSync(path.join(process.cwd(), "public", "produkte.csv"))) {
+    // Netlify environment
+    assetsPath = path.join(process.cwd(), "public");
+  } else if (fs.existsSync(path.join(process.cwd(), "client", "public", "produkte.csv"))) {
+    // Local development
+    assetsPath = path.join(process.cwd(), "client", "public");
+  } else {
+    console.error("CSV-Dateien nicht gefunden!");
+    return { products: [], categories: [] };
+  }
   
   const produkteCsvPath = path.join(assetsPath, "produkte.csv");
   const reisenCsvPath = path.join(assetsPath, "reisen.csv");
