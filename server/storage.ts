@@ -11,26 +11,24 @@ export interface IStorage {
 export class MemStorage implements IStorage {
   private products: Product[] = [];
   private categories: Category[] = [];
-  private ready: Promise<void>;
+  private initialized = false;
 
   constructor() {
-    this.ready = this.initialize();
+    this.initialize();
   }
 
-  private async initialize() {
-    const { products, categories } = await parseCSV();
+  private initialize() {
+    if (this.initialized) return;
+
+    const { products, categories } = parseCSV();
     this.products = products;
     this.categories = categories;
+    this.initialized = true;
 
     console.log(`Storage initialisiert: ${this.products.length} Produkte, ${this.categories.length} Kategorien`);
   }
 
-  private async ensureReady() {
-    await this.ready;
-  }
-
   async getProducts(params: SearchParams): Promise<PaginatedResponse> {
-    await this.ensureReady();
     let filtered = [...this.products];
 
     // Suche
@@ -101,17 +99,14 @@ export class MemStorage implements IStorage {
   }
 
   async getProductById(id: string): Promise<Product | undefined> {
-    await this.ensureReady();
     return this.products.find((p) => p.id === id);
   }
 
   async getCategories(): Promise<Category[]> {
-    await this.ensureReady();
     return this.categories;
   }
 
   async getCategoryBySlug(slug: string): Promise<Category | undefined> {
-    await this.ensureReady();
     return this.categories.find((c) => c.slug === slug);
   }
 }
