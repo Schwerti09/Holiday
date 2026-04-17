@@ -138,10 +138,10 @@ function parseCSVFile(csvPath: string, startId: number, encoding: BufferEncoding
 }
 
 export function parseCSV(): { products: Product[]; categories: Category[] } {
-  const assetsPath = path.join(process.cwd(), "attached_assets");
+  const assetsPath = path.join(process.cwd(), "client", "public");
   
-  const produkteCsvPath = path.join(assetsPath, "363820-66376_(1)_1764845311164.csv");
-  const reisenCsvPath = path.join(assetsPath, "46013-66376_1764845304205.csv");
+  const produkteCsvPath = path.join(assetsPath, "produkte.csv");
+  const reisenCsvPath = path.join(assetsPath, "reisen.csv");
   
   const produkteProducts = parseCSVFile(produkteCsvPath, 1, "utf-8");
   console.log(`Produkte-CSV: ${produkteProducts.length} Artikel geladen`);
