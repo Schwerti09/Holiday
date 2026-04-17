@@ -135,15 +135,31 @@ function parseCSVFile(csvPath: string, startId: number, encoding: BufferEncoding
 }
 
 export function parseCSV(): { products: Product[]; categories: Category[] } {
-  // Auf Netlify liegen die CSVs in dist/public (nach dem Copy-Step)
-  const publicPath = path.join(process.cwd(), "public");
+  // Einfacher Netlify-Fix: CSVs liegen direkt neben der Function in dist/public
+  const possiblePaths = [
+    path.join(process.cwd(), "public"),           // Netlify normal
+    path.join(process.cwd(), "..", "public"),     // manchmal verschoben
+    "/var/task/public",                           // typischer Netlify Functions Pfad
+  ];
 
-  const produkteCsvPath = path.join(publicPath, "produkte.csv");
-  const reisenCsvPath = path.join(publicPath, "reisen.csv");
+  let assetsPath = "";
+  for (const p of possiblePaths) {
+    if (fs.existsSync(path.join(p, "produkte.csv"))) {
+      assetsPath = p;
+      break;
+    }
+  }
 
-  console.log("Lade CSV-Dateien aus:", publicPath);
-  console.log("Produkte-CSV:", produkteCsvPath);
-  console.log("Reisen-CSV:", reisenCsvPath);
+  if (!assetsPath) {
+    console.error("CSV-Dateien in keinem der möglichen Pfade gefunden!");
+    console.error("process.cwd() war:", process.cwd());
+    return { products: [], categories: [] };
+  }
+
+  const produkteCsvPath = path.join(assetsPath, "produkte.csv");
+  const reisenCsvPath = path.join(assetsPath, "reisen.csv");
+
+  console.log("✅ CSV-Dateien gefunden in:", assetsPath);
   
   const produkteProducts = parseCSVFile(produkteCsvPath, 1, "utf-8");
   console.log(`Produkte-CSV: ${produkteProducts.length} Artikel geladen`);
