@@ -1,9 +1,10 @@
-import * as fs from "fs";
-import * as path from "path";
 import type { Product, Category } from "@shared/schema";
 
-// ADCELL Slot-ID von Rolf Schwertfechter (Affiliate-ID)
-const ADCELL_SLOT_ID = "66376";
+// ADCELL Live Feed URLs
+const ADCELL_FEED_URLS = [
+  "https://www.adcell.de/promotion/csv?promoId=46013&slotId=66376",
+  "https://www.adcell.de/promotion/csv?promoId=363820&slotId=66376",
+];
 
 /**
  * Prüft und korrigiert die slotId im Deeplink auf die korrekte Affiliate-ID
@@ -15,7 +16,7 @@ function rewriteDeeplink(originalDeeplink: string): string {
   // Prüfe ob die slotId korrekt ist, falls nicht ersetze sie
   if (originalDeeplink.includes("adcell.com") && originalDeeplink.includes("slotId=")) {
     // Ersetze nur die slotId falls sie nicht korrekt ist
-    return originalDeeplink.replace(/slotId=\d+/, `slotId=${ADCELL_SLOT_ID}`);
+    return originalDeeplink.replace(/slotId=\d+/, `slotId=66376`);
   }
   
   return originalDeeplink;
@@ -65,21 +66,26 @@ function parsePrice(priceStr: string): number {
   return parseFloat(cleaned) || 0;
 }
 
-function parseCSVFile(csvPath: string, startId: number, encoding: BufferEncoding = "utf-8"): Product[] {
-  if (!fs.existsSync(csvPath)) {
-    console.error("CSV-Datei nicht gefunden:", csvPath);
+async function fetchCSV(url: string): Promise<string> {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return await response.text();
+  } catch (error) {
+    console.error(`Fehler beim Laden von ${url}:`, error);
+    return "";
+  }
+}
+
+async function parseCSVFromUrl(url: string, startId: number): Promise<Product[]> {
+  const content = await fetchCSV(url);
+  
+  if (!content) {
     return [];
   }
 
-  const buffer = fs.readFileSync(csvPath);
-  let content: string;
-  
-  if (encoding === "latin1") {
-    content = buffer.toString("latin1");
-  } else {
-    content = buffer.toString("utf-8");
-  }
-  
   const lines = content.split("\n").filter((line) => line.trim());
 
   if (lines.length < 2) {
@@ -137,17 +143,14 @@ function parseCSVFile(csvPath: string, startId: number, encoding: BufferEncoding
   return products;
 }
 
-export function parseCSV(): { products: Product[]; categories: Category[] } {
-  const assetsPath = path.join(process.cwd(), "client", "public");
+export async function parseCSV(): Promise<{ products: Product[]; categories: Category[] }> {
+  console.log("Lade CSV-Feeds von Adcell...");
   
-  const produkteCsvPath = path.join(assetsPath, "produkte.csv");
-  const reisenCsvPath = path.join(assetsPath, "reisen.csv");
+  const produkteProducts = await parseCSVFromUrl(ADCELL_FEED_URLS[0], 1);
+  console.log(`Produkte-Feed: ${produkteProducts.length} Artikel geladen`);
   
-  const produkteProducts = parseCSVFile(produkteCsvPath, 1, "utf-8");
-  console.log(`Produkte-CSV: ${produkteProducts.length} Artikel geladen`);
-  
-  const reisenProducts = parseCSVFile(reisenCsvPath, produkteProducts.length + 1, "latin1");
-  console.log(`Reisen-CSV: ${reisenProducts.length} Artikel geladen`);
+  const reisenProducts = await parseCSVFromUrl(ADCELL_FEED_URLS[1], produkteProducts.length + 1);
+  console.log(`Reisen-Feed: ${reisenProducts.length} Artikel geladen`);
   
   const allProducts = [...produkteProducts, ...reisenProducts];
   
